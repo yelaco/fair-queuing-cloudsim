@@ -1,230 +1,86 @@
-### Detailed Explanation of the Papers
+# CloudSim: A Framework For Modeling And Simulation Of Cloud Computing Infrastructures And Services #
 
-#### **1. Dynamic Fair Priority Optimization Task Scheduling in Cloud Computing**
+Cloud Computing is the leading approach for delivering reliable, secure, fault-tolerant, sustainable, and scalable computational services. Hence timely, repeatable, and controllable methodologies for performance evaluation of new cloud applications and policies before their actual development are required. Because utilization of real testbeds limits the experiments to the scale of the testbed and makes the reproduction of results an extremely difficult undertaking, simulation may be used.
 
-- **Objective**: Optimize task scheduling in cloud environments to balance efficiency and fairness for users and providers.
-- **Key Concepts**:
-  - **Constraint-based Grouping**: Tasks are classified into deadline-based and cost-based groups to address user (QoS) and provider (profit) constraints.
-  - **Weighted Fair Queuing (WFQ)**: Tasks are assigned to high, mid, and low priority queues. Each queue is serviced in a weighted round-robin fashion (e.g., 3 tasks from high, 2 from mid, 1 from low per cycle).
-  - **Dynamic Optimization**:
-    - For deadline-based tasks: Select VMs with minimum turnaround time.
-    - For cost-based tasks: Assign to VMs with minimum execution cost.
-  - **Avoids Starvation**: Ensures low-priority tasks are not indefinitely delayed by using round-robin within priority tiers.
-- **Implementation**:
-  - Simulated using CloudSim, showing reduced execution time and cost compared to sequential and static algorithms.
+CloudSim's goal is to provide a generalized and extensible simulation framework that enables modeling, simulation, and experimentation of emerging Cloud Computing infrastructures and application services, allowing its users to focus on specific system design issues that they want to investigate, without getting concerned about the low level details related to Cloud-Based infrastructures and services.
 
-#### **2. 2DFQ: Two-Dimensional Fair Queuing for Multi-Tenant Cloud Services**
+CloudSim is developed in [the Cloud Computing and Distributed Systems (CLOUDS) Laboratory](http://cloudbus.org/), at [the Computer Science and Software Engineering Department](http://www.csse.unimelb.edu.au/) of [the University of Melbourne](http://www.unimelb.edu.au/).
 
-- **Objective**: Provide smooth, fair scheduling in multi-tenant systems with high concurrency and variable request costs.
-- **Key Concepts**:
-  - **Two-Dimensional Scheduling**:
-    - **Time**: Orders requests by virtual start/finish times (like WFQ).
-    - **Thread Allocation**: Spreads requests across threads based on cost (small requests on high-index threads, large on low-index threads).
-  - **Handling Unknown Costs**:
-    - **Pessimistic Estimation**: Overestimates costs to isolate unpredictable tenants.
-    - **Retroactive Charging**: Adjusts fairness counters post-execution to account for actual resource usage.
-    - **Refresh Charging**: Periodically updates cost estimates during long-running tasks.
-  - **Reduces Burstiness**: Prevents large requests from blocking small ones by segregating them across threads.
-- **Results**:
-  - Reduces 99th percentile latency by up to 100x for predictable tenants competing with unpredictable workloads.
+More information can be found on the [CloudSim's web site](http://cloudbus.org/cloudsim/).
 
----
 
-### Combining the Ideas and Theories
+# Main features #
 
-#### **1. Integrate Dynamic Priority Optimization into 2DFQ**
+  * Support for modeling and simulation of large scale Cloud Computing data centers
+  * Support for modeling and simulation of virtualized server hosts, with customizable policies for provisioning host resources to Virtual Machines
+  * Support for modeling and simulation of application containers
+  * Support for modeling and simulation of energy-aware computational resources
+  * Support for modeling and simulation of data center network topologies and message-passing applications
+  * Support for modeling and simulation of federated clouds
+  * Support for dynamic insertion of simulation elements, stop and resume of simulation
+  * Support for user-defined policies for allocation of hosts to Virtual Machines and policies for allocation of host resources to Virtual Machines
 
-- **Step 1**: Use the first paper’s **constraint-based grouping** (deadline/cost) to classify tasks.
-- **Step 2**: Apply **2DFQ’s thread allocation** to each group:
-  - High-priority (deadline-sensitive) tasks → Assign to threads optimized for low latency (high-index threads).
-  - Cost-based tasks → Assign to threads optimized for resource efficiency (low-index threads).
-- **Benefit**: Combines user-level QoS (deadlines) and provider-level efficiency (cost) with 2DFQ’s burst-reduction.
 
-#### **2. Enhance 2DFQ’s Cost Estimation with Dynamic Weights**
+# Download #
 
-- **Dynamic Weight Adjustment**: Use the first paper’s **dynamic optimization** to adjust queue weights in real-time based on:
-  - System load (e.g., increase high-priority weight during peak demand).
-  - Historical data (e.g., shift resources to cost-based tasks if VM utilization drops).
-- **Pessimistic Estimation for Priorities**: Apply 2DFQ’s pessimistic cost estimation to prioritize critical tasks (e.g., deadline-based) by overestimating their resource needs, ensuring they occupy dedicated threads.
+Either clone the repository or download a [release](https://github.com/Cloudslab/cloudsim/releases). The release package contains all the source code, examples, jars, and API html files.
 
-#### **3. Hybrid Scheduling Model**
-
-- **Layer 1 (Grouping)**: Classify tasks into deadline/cost groups (first paper).
-- **Layer 2 (Scheduling)**:
-  - For deadline groups: Use 2DFQ’s thread allocation to ensure small, urgent tasks avoid blocking.
-  - For cost groups: Use greedy VM allocation (first paper) on low-index threads to maximize provider profit.
-- **Layer 3 (Adaptation)**: Continuously update weights and cost estimates using retroactive/refresh charging (2DFQ) and dynamic optimization (first paper).
-
-#### **4. Practical Implementation**
-
-- **In CloudSim**:
-  1. Modify the Data Center Broker to support 2DFQ’s thread allocation logic.
-  2. Integrate dynamic grouping and priority queues into the scheduler.
-  3. Add pessimistic cost estimation and retroactive charging for VM selection.
-- **Metrics to Track**:
-  - Fairness (Gini index, service lag).
-  - Efficiency (VM utilization, task completion time).
-  - Cost/Deadline Compliance (QoS adherence).
-
----
-
-### Challenges and Solutions
-
-1. **Complexity**: Combining two sophisticated algorithms may increase overhead.
-   - **Solution**: Optimize thread allocation logic and use lightweight dynamic adjustments.
-2. **Conflicting Goals**: Deadline-driven vs. cost-driven tasks might compete for resources.
-   - **Solution**: Use adaptive weights to balance priorities based on real-time demand.
-3. **Unpredictable Workloads**: Sudden spikes in task size/cost.
-   - **Solution**: Leverage 2DFQ’s pessimistic estimation to isolate unpredictable tasks.
-
----
-
-### Summary
-
-By merging the **dynamic, constraint-aware scheduling** of the first paper with **2DFQ’s burst-resistant, multi-threaded fairness**, you create a hybrid model that:
-
-- Balances user QoS (deadlines) and provider efficiency (cost).
-- Reduces latency for small tasks while handling large/unpredictable requests.
-- Adapts to changing workloads through dynamic optimization and pessimistic estimation.
-
-This combination addresses both **micro-level task priorities** and **macro-level system concurrency**, offering a robust solution for modern cloud environments.
-To implement the combined approach of **Dynamic Fair Priority Optimization** (from the second paper) into **2DFQ** (from the first paper), follow these steps:
-
----
-
-### **1. Task Classification and Grouping**
-
-- **Step 1.1**: Classify incoming tasks into **deadline-based** (user QoS) or **cost-based** (provider profit) groups.
-- **Step 1.2**: Further subdivide each group into **priority tiers** (high, mid, low) using dynamic weights:
-  - For deadline-based tasks: Prioritize by urgency (e.g., shorter deadlines → higher priority).
-  - For cost-based tasks: Prioritize by task length (longer tasks → higher priority for cost efficiency).
-
----
-
-### **2. Integrate Weighted Fair Queuing (WFQ) with 2DFQ**
-
-- **Step 2.1**: For each priority tier (high/mid/low), maintain separate queues.
-- **Step 2.2**: Apply **2DFQ’s thread allocation** within each tier:
-  - Small tasks → Assign to **high-index threads** (optimized for latency).
-  - Large tasks → Assign to **low-index threads** (isolated to prevent blocking).
-    - **Step 2.3**: Use **weighted round-robin** across priority tiers:
-  - Example weights: High:3, Mid:2, Low:1 (process 3 high-priority tasks, then 2 mid, then 1 low per cycle).
-
----
-
-### **3. VM Allocation with Dynamic Optimization**
-
-- **Step 3.1**: For **deadline-based tasks**:
-  - Use **greedy VM selection** based on minimum turnaround time:
-    ```python
-    turnaround_time = VM_wait_time + (task_length / VM_MIPS)
-    Select VM with smallest turnaround_time.
-    ```
-- **Step 3.2**: For **cost-based tasks**:
-  - Use **greedy VM selection** based on minimum execution cost:
-    ```python
-    cost = VM_cost_per_sec * (task_length / VM_MIPS)
-    Select VM with smallest cost.
-    ```
-
----
-
-### **4. Handling Unknown Costs (2DFQ\* Extension)**
-
-- **Step 4.1**: Apply **pessimistic cost estimation**:
-  - Track `L_max` (max observed cost) per tenant/API.
-  - Overestimate costs for unpredictable tenants to isolate them on low-index threads.
-- **Step 4.2**: Implement **retroactive charging**:
-  - Adjust fairness counters post-execution using actual task costs.
-- **Step 4.3**: Use **refresh charging** for long-running tasks:
-  - Periodically update cost estimates (e.g., every 10ms) to mitigate feedback delays.
-
----
-
-### **5. Adaptive Thread Allocation**
-
-- **Step 5.1**: Dynamically adjust thread allocation weights based on system load:
-  - Example: Increase high-priority thread allocation during peak demand.
-- **Step 5.2**: Use **2DFQ’s virtual time** to ensure fairness:
-  - Compute virtual start/finish times for tasks:
-    ```python
-    S(r_j) = max(virtual_time, F(r_{j-1}))
-    F(r_j) = S(r_j) + (task_cost / tenant_weight)
-    ```
-  - Schedule tasks with the smallest `F(r_j)` first.
-
----
-
-### **6. Implementation Workflow**
-
-```python
-def combined_scheduler(tasks, vms):
-    # Step 1: Classify tasks into deadline/cost groups
-    deadline_tasks, cost_tasks = classify_tasks(tasks)
-
-    # Step 2: Subdivide into priority tiers
-    deadline_queues = prioritize(deadline_tasks, by="deadline")
-    cost_queues = prioritize(cost_tasks, by="length")
-
-    # Step 3: Process each priority tier with 2DFQ
-    for queue in [deadline_queues.high, deadline_queues.mid, deadline_queues.low]:
-        for task in queue:
-            # Apply 2DFQ thread allocation
-            thread = assign_thread(task.size)
-            # Assign VM based on group
-            vm = select_vm(task, vms, mode="deadline")
-            execute(task, vm, thread)
-
-    for queue in [cost_queues.high, cost_queues.mid, cost_queues.low]:
-        for task in queue:
-            thread = assign_thread(task.size)
-            vm = select_vm(task, vms, mode="cost")
-            execute(task, vm, thread)
-
-    # Step 4: Handle unknown costs (2DFQ*)
-    update_cost_estimates()
-    apply_retroactive_charges()
+# Installation
+**Windows**
+1) Install Java JDK21 on your system from the [official website](https://www.oracle.com/in/java/technologies/downloads/#java21) as shown in [JDK installation instructions](https://docs.oracle.com/en/java/javase/23/install/overview-jdk-installation.html)
+2) Install Maven as shown on the [official website](https://maven.apache.org/install.html)
+4) Compile and Run tests using the command prompt:
+  ```prompt
+  mvn clean package
+  ```
+5) Run an example (e.g., CloudSimExample1) in cloudsim-examples using the command prompt:
+```prompt
+mvn exec:java -pl modules/cloudsim-examples/ -Dexec.mainClass=org.cloudbus.cloudsim.examples.CloudSimExample1
 ```
 
----
+**Linux**
+  1) Install Java JDK21 on your system:
+  - On Debian-based Linux & Windows WSL2: 
+    ```bash
+    sudo apt install openjdk-21-jdk
+    ```
+  - On Red Hat-based Linux:  
+    ```bash  
+    sudo yum install java-21-openjdk
+    ```
+  2) Set Java JDK21 as default: 
+  - On Debian-based Linux & Windows WSL2:
+    ```bash
+    sudo update-java-alternatives --set java-1.21.0-openjdk-amd64
+    ```
+  - On Red Hat-based Linux: 
+    ```bash
+    sudo update-alternatives --config 'java'
+    ```
+  3) Install Maven as shown on the [Official Website](https://maven.apache.org/install.html)
+  4) Compile and run tests using the terminal:
+  ```bash
+  mvn clean package
+  ```
+  5) Run an example (e.g., CloudSimExample1) in cloudsim-examples using the terminal:
+  ```bash
+  mvn exec:java -pl modules/cloudsim-examples/ -Dexec.mainClass=org.cloudbus.cloudsim.examples.CloudSimExample1
+  ```
 
-### **7. Key Components to Modify in 2DFQ**
+  **Suggestion:** Use an IDE such as IDEA Intellij to faciliate steps 4) and 5)
 
-1. **Task Queues**:
-   - Replace per-tenant queues with **priority-tiered queues** (high/mid/low) for deadline/cost groups.
-2. **Thread Allocation**:
-   - Map small tasks to high-index threads, large to low-index, but within priority tiers.
-3. **VM Selection**:
-   - Integrate greedy VM selection logic for deadline/cost groups.
-4. **Cost Estimation**:
-   - Add modules for pessimistic estimation and retroactive charging.
+# Preferred Publication #
+  * Remo Andreoli, Jie Zhao, Tommaso Cucinotta, and Rajkumar Buyya, [CloudSim 7G: An Integrated Toolkit for Modeling and Simulation of Future Generation Cloud Computing Environments](https://onlinelibrary.wiley.com/doi/10.1002/spe.3413), Software: Practice and Experience, 2025.
+    
+# Publications (Legacy) #
 
----
+  * Anton Beloglazov, and Rajkumar Buyya, [Optimal Online Deterministic Algorithms and Adaptive Heuristics for Energy and Performance Efficient Dynamic Consolidation of Virtual Machines in Cloud Data Centers](http://beloglazov.info/papers/2012-optimal-algorithms-ccpe.pdf), Concurrency and Computation: Practice and Experience, Volume 24, Number 13, Pages: 1397-1420, John Wiley & Sons, Ltd, New York, USA, 2012.
+  * Saurabh Kumar Garg and Rajkumar Buyya, [NetworkCloudSim: Modelling Parallel Applications in Cloud Simulations](http://www.cloudbus.org/papers/NetworkCloudSim2011.pdf), Proceedings of the 4th IEEE/ACM International Conference on Utility and Cloud Computing (UCC 2011, IEEE CS Press, USA), Melbourne, Australia, December 5-7, 2011.
+  * **Rodrigo N. Calheiros, Rajiv Ranjan, Anton Beloglazov, Cesar A. F. De Rose, and Rajkumar Buyya, [CloudSim: A Toolkit for Modeling and Simulation of Cloud Computing Environments and Evaluation of Resource Provisioning Algorithms](http://www.buyya.com/papers/CloudSim2010.pdf), Software: Practice and Experience (SPE), Volume 41, Number 1, Pages: 23-50, ISSN: 0038-0644, Wiley Press, New York, USA, January, 2011. (Seminal paper)**
+  * Bhathiya Wickremasinghe, Rodrigo N. Calheiros, Rajkumar Buyya, [CloudAnalyst: A CloudSim-based Visual Modeller for Analysing Cloud Computing Environments and Applications](http://www.cloudbus.org/papers/CloudAnalyst-AINA2010.pdf), Proceedings of the 24th International Conference on Advanced Information Networking and Applications (AINA 2010), Perth, Australia, April 20-23, 2010.
+  * Rajkumar Buyya, Rajiv Ranjan and Rodrigo N. Calheiros, [Modeling and Simulation of Scalable Cloud Computing Environments and the CloudSim Toolkit: Challenges and Opportunities](http://www.cloudbus.org/papers/CloudSim-HPCS2009.pdf), Proceedings of the 7th High Performance Computing and Simulation Conference (HPCS 2009, ISBN: 978-1-4244-4907-1, IEEE Press, New York, USA), Leipzig, Germany, June 21-24, 2009.
 
-### **8. Metrics to Evaluate**
 
-- **Fairness**: Gini index, service lag variation.
-- **Efficiency**: Total execution time, VM utilization.
-- **QoS Compliance**: Deadline misses, cost overruns.
-- **Burstiness**: 99th percentile latency for small tasks.
 
----
 
-### **Challenges & Solutions**
-
-- **Complexity**: Use modular design to separate grouping, prioritization, and scheduling.
-- **Starvation**: Ensure low-priority tasks are served via weighted round-robin.
-- **Overhead**: Optimize cost estimation with incremental updates.
-
----
-
-### **Summary**
-
-By integrating **dynamic priority tiers**, **weighted fair queuing**, and **2DFQ’s thread allocation**, you create a hybrid scheduler that:
-
-- Balances user QoS and provider profit.
-- Minimizes latency for small tasks while isolating large/unpredictable ones.
-- Adapts to workload changes through dynamic optimization and pessimistic cost estimation.
-
-This approach leverages the strengths of both papers, making it ideal for multi-tenant cloud systems with diverse workloads.
-# fair-queuing-cloudsim
+[![](http://www.cloudbus.org/logo/cloudbuslogo-v5a.png)](http://cloudbus.org/)
