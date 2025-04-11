@@ -1,0 +1,38 @@
+version: "3"
+
+vars:
+  JAVA_CLASS: org.advancedcloud.examples.FairQueuingTaskScheduling
+  BATCH_SIZE: 8
+  TASK_FILE: tasks.csv
+  TOTAL_TASKS_CMD: "wc -l < {{.TASK_FILE}}"
+
+tasks:
+  default:
+    cmds:
+      - task: run-batches
+
+  compile:
+    desc: Compile the Maven project
+    cmds:
+      - mvn clean compile
+
+  run-batches:
+    desc: Run the simulation in batches
+    deps: [compile]
+    vars:
+      HEADERS:
+        - task_id
+        - length
+        - vm_id
+        - start_time
+        - finish_time
+    cmds:
+      - rm results.csv virtual_times.csv
+      - |
+        TOTAL_TASKS=$({{.TOTAL_TASKS_CMD}})
+        echo "{{ join "," .HEADERS }}" > results.csv
+        for ((OFFSET = 0; OFFSET < TOTAL_TASKS; OFFSET += {{.BATCH_SIZE}})); do
+          echo "Running batch starting at task #$OFFSET"
+          mvn exec:java -Dexec.mainClass={{.JAVA_CLASS}} -Dexec.args="$OFFSET"
+        done
+    silent: false
