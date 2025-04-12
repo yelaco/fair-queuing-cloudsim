@@ -22,6 +22,31 @@ tasks:
     cmds:
       - mvn clean compile
 
+  all:
+    ignore_error: true
+    cmds:
+      # - rm ./results/proposed/*
+      - rm ./results/original/*
+      - rm ./results/sequential/*
+      # - task: run-proposed-200-10
+      # - task: run-proposed-400-10
+      # - task: run-proposed-600-10
+      # - task: run-proposed-800-10
+      # - task: run-proposed-1000-10
+      # - mv results-proposed-*.csv ./results/proposed/
+      - task: run-original-200-10
+      - task: run-original-400-10
+      - task: run-original-600-10
+      - task: run-original-800-10
+      - task: run-original-1000-10
+      - mv results-original-*.csv ./results/original/
+      - task: run-sequential-200-10
+      - task: run-sequential-400-10
+      - task: run-sequential-600-10
+      - task: run-sequential-800-10
+      - task: run-sequential-1000-10
+      - mv results-sequential-*.csv ./results/sequential/
+
   run-proposed-*-*:
     desc: Run the simulation in batches
     deps: [compile]
@@ -29,7 +54,7 @@ tasks:
     vars:
       LIMIT: "{{index .MATCH 0}}"
       BATCH_SIZE: "{{index .MATCH 1}}"
-      RESULT_FILE: "results-{{.LIMIT}}-{{.BATCH_SIZE}}.csv"
+      RESULT_FILE: "results-proposed-{{.LIMIT}}-{{.BATCH_SIZE}}.csv"
     cmds:
       - rm {{.RESULT_FILE}} virtual_times.csv
       - |
@@ -47,9 +72,9 @@ tasks:
     vars:
       LIMIT: "{{index .MATCH 0}}"
       BATCH_SIZE: "{{index .MATCH 1}}"
-      RESULT_FILE: "results-{{.LIMIT}}-{{.BATCH_SIZE}}.csv"
+      RESULT_FILE: "results-original-{{.LIMIT}}-{{.BATCH_SIZE}}.csv"
     cmds:
-      - rm {{.RESULT_FILE}} virtual_times.csv
+      - rm {{.RESULT_FILE}}
       - |
         for ((OFFSET = 0; OFFSET < {{.LIMIT}}; OFFSET += {{.BATCH_SIZE}})); do
           echo "Running batch starting at task #$OFFSET"
@@ -65,9 +90,9 @@ tasks:
     vars:
       LIMIT: "{{index .MATCH 0}}"
       BATCH_SIZE: "{{index .MATCH 1}}"
-      RESULT_FILE: "results-{{.LIMIT}}-{{.BATCH_SIZE}}.csv"
+      RESULT_FILE: "results-sequential-{{.LIMIT}}-{{.BATCH_SIZE}}.csv"
     cmds:
-      - rm {{.RESULT_FILE}} virtual_times.csv
+      - rm {{.RESULT_FILE}}
       - |
         for ((OFFSET = 0; OFFSET < {{.LIMIT}}; OFFSET += {{.BATCH_SIZE}})); do
           echo "Running batch starting at task #$OFFSET"

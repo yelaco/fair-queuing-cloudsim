@@ -60,7 +60,7 @@ public class ProposedTaskScheduling {
     int offset = args.length > 0 ? Integer.parseInt(args[0]) : 0;
     int totalLimit = args.length > 1 ? Integer.parseInt(args[1]) : 0;
     CLOUDLETS = args.length > 2 ? Integer.parseInt(args[2]) : VMS;
-    OUTPUT_CSV = "results-" + String.valueOf(totalLimit) + "-" + String.valueOf(CLOUDLETS) + ".csv";
+    OUTPUT_CSV = "results-proposed-" + String.valueOf(totalLimit) + "-" + String.valueOf(CLOUDLETS) + ".csv";
     new ProposedTaskScheduling(offset, totalLimit);
   }
 
@@ -105,7 +105,7 @@ public class ProposedTaskScheduling {
       if (!lastLine.isEmpty()) {
         String[] parts = lastLine.split(",");
         if (parts.length >= 8)
-          return Double.parseDouble(parts[7]);
+          return Double.parseDouble(parts[6]);
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -282,7 +282,7 @@ public class ProposedTaskScheduling {
           break;
 
         String[] parts = line.split(",");
-        if (parts.length >= 2) {
+        if (parts.length >= 3) {
           int taskId = Integer.parseInt(parts[0]);
           long length = Long.parseLong(parts[1]);
           long deadline = Long.parseLong(parts[2]);
