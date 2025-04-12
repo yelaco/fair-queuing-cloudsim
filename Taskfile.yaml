@@ -1,48 +1,79 @@
 version: "3"
 
 vars:
-  JAVA_CLASS: org.advancedcloud.examples.FairQueuingTaskScheduling
-  BATCH_JAVA_CLASS: org.advancedcloud.examples.FairQueuingBatchScheduling
+  JAVA_CLASS_PROPOSED: org.advancedcloud.examples.ProposedTaskScheduling
+  JAVA_CLASS_ORIGINAL: org.advancedcloud.examples.OriginalTaskScheduling
+  JAVA_CLASS_SEQUENTIAL: org.advancedcloud.examples.SequentialTaskScheduling
   TASK_FILE: tasks.csv
   HEADERS:
     - task_id
     - length
+    - deadline
     - vm_id
     - thread
     - start_time
     - finish_time
+    - exec_time
+    - cost
 
 tasks:
-  default:
-    cmds:
-      - task: run-batches
-
   compile:
     desc: Compile the Maven project
     cmds:
       - mvn clean compile
 
-  run:
-    desc: Run the simulation
-    deps: [compile]
-    cmds:
-      - mvn exec:java -Dexec.mainClass={{.JAVA_CLASS}}
-
-  run-batches-*-*:
+  run-proposed-*-*:
     desc: Run the simulation in batches
     deps: [compile]
     ignore_error: true
     vars:
       LIMIT: "{{index .MATCH 0}}"
       BATCH_SIZE: "{{index .MATCH 1}}"
+      RESULT_FILE: "results-{{.LIMIT}}-{{.BATCH_SIZE}}.csv"
     cmds:
-      - rm results.csv virtual_times.csv
+      - rm {{.RESULT_FILE}} virtual_times.csv
       - |
         for ((OFFSET = 0; OFFSET < {{.LIMIT}}; OFFSET += {{.BATCH_SIZE}})); do
           echo "Running batch starting at task #$OFFSET"
-          mvn exec:java -Dexec.mainClass={{.BATCH_JAVA_CLASS}} -Dexec.args="$OFFSET {{.LIMIT}} {{.BATCH_SIZE}}"
+          mvn exec:java -Dexec.mainClass={{.JAVA_CLASS_PROPOSED}} -Dexec.args="$OFFSET {{.LIMIT}} {{.BATCH_SIZE}}"
         done
-        sed -i '1i {{ join "," .HEADERS }}' results.csv
+        sed -i '1i {{ join "," .HEADERS }}' {{.RESULT_FILE}}
+    silent: false
+
+  run-original-*-*:
+    desc: Run the simulation in batches
+    deps: [compile]
+    ignore_error: true
+    vars:
+      LIMIT: "{{index .MATCH 0}}"
+      BATCH_SIZE: "{{index .MATCH 1}}"
+      RESULT_FILE: "results-{{.LIMIT}}-{{.BATCH_SIZE}}.csv"
+    cmds:
+      - rm {{.RESULT_FILE}} virtual_times.csv
+      - |
+        for ((OFFSET = 0; OFFSET < {{.LIMIT}}; OFFSET += {{.BATCH_SIZE}})); do
+          echo "Running batch starting at task #$OFFSET"
+          mvn exec:java -Dexec.mainClass={{.JAVA_CLASS_ORIGINAL}} -Dexec.args="$OFFSET {{.LIMIT}} {{.BATCH_SIZE}}"
+        done
+        sed -i '1i {{ join "," .HEADERS }}' {{.RESULT_FILE}}
+    silent: false
+
+  run-sequential-*-*:
+    desc: Run the simulation in batches
+    deps: [compile]
+    ignore_error: true
+    vars:
+      LIMIT: "{{index .MATCH 0}}"
+      BATCH_SIZE: "{{index .MATCH 1}}"
+      RESULT_FILE: "results-{{.LIMIT}}-{{.BATCH_SIZE}}.csv"
+    cmds:
+      - rm {{.RESULT_FILE}} virtual_times.csv
+      - |
+        for ((OFFSET = 0; OFFSET < {{.LIMIT}}; OFFSET += {{.BATCH_SIZE}})); do
+          echo "Running batch starting at task #$OFFSET"
+          mvn exec:java -Dexec.mainClass={{.JAVA_CLASS_SEQUENTIAL}} -Dexec.args="$OFFSET {{.LIMIT}} {{.BATCH_SIZE}}"
+        done
+        sed -i '1i {{ join "," .HEADERS }}' {{.RESULT_FILE}}
     silent: false
 
   setup:
@@ -51,6 +82,10 @@ tasks:
       - virtualenv .venv
       - source .venv/bin/active
       - pip install -r requirements.txt
+
+  clean:
+    cmds:
+      - rm results-*.csv
 
   visualize:
     cmds:

@@ -2,7 +2,6 @@ package org.advancedcloud.examples;
 
 import org.cloudsimplus.brokers.DatacenterBrokerSimple;
 import org.cloudsimplus.cloudlets.Cloudlet;
-import org.cloudsimplus.cloudlets.CloudletSimple;
 import org.cloudsimplus.core.CloudSimPlus;
 import org.cloudsimplus.datacenters.Datacenter;
 import org.cloudsimplus.datacenters.DatacenterSimple;
@@ -16,12 +15,13 @@ import org.cloudsimplus.utilizationmodels.UtilizationModelFull;
 import org.cloudsimplus.vms.Vm;
 import org.cloudsimplus.vms.VmSimple;
 import org.cloudsimplus.builders.tables.CloudletsTableBuilder;
+import org.advancedcloud.utils.CloudletDeadline;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class FairQueuingBatchScheduling {
+public class OriginalTaskScheduling {
 
   private static final int LOGICAL_VMS = 3;
   private static final int THREADS_PER_LOGICAL_VM = 2;
@@ -38,11 +38,11 @@ public class FairQueuingBatchScheduling {
 
   private static int CLOUDLETS;
 
-  private static final int DEADLINE_THRESHOLD = 800;
+  private static final int DEADLINE_THRESHOLD = 1000;
   private static final int LENGTH_THRESHOLD = 400;
 
   private static final String INPUT_CSV = "tasks.csv";
-  private static final String OUTPUT_CSV = "results.csv";
+  private static String OUTPUT_CSV;
   private static final String VIRTUAL_TIME_CSV = "virtual_times.csv";
 
   private final CloudSimPlus simulation;
@@ -50,8 +50,8 @@ public class FairQueuingBatchScheduling {
   private final List<Vm> vmList;
   private final List<Cloudlet> deadlineTasks = new ArrayList<>();
   private final List<Cloudlet> costTasks = new ArrayList<>();
-  private final Map<Vm, Double> vmCost = new HashMap<>();
-  private final Map<Vm, Double> vmWait = new HashMap<>();
+  private final Map<Long, Double> vmCost = new HashMap<>();
+  private final Map<Long, Double> vmWait = new HashMap<>();
   private final Map<Integer, Double> logicalVmVirtualTime = new HashMap<>();
 
   private double offsetTime;
@@ -60,10 +60,11 @@ public class FairQueuingBatchScheduling {
     int offset = args.length > 0 ? Integer.parseInt(args[0]) : 0;
     int totalLimit = args.length > 1 ? Integer.parseInt(args[1]) : 0;
     CLOUDLETS = args.length > 2 ? Integer.parseInt(args[2]) : VMS;
-    new FairQueuingBatchScheduling(offset, totalLimit);
+    OUTPUT_CSV = "results-" + String.valueOf(totalLimit) + "-" + String.valueOf(CLOUDLETS) + ".csv";
+    new ProposedTaskScheduling(offset, totalLimit);
   }
 
-  public FairQueuingBatchScheduling(int offset, int totalLimit) {
+  public OriginalTaskScheduling(int offset, int totalLimit) {
     offsetTime = readLastFinishTimeFromCSV();
 
     simulation = new CloudSimPlus();
@@ -75,11 +76,12 @@ public class FairQueuingBatchScheduling {
 
     List<Cloudlet> cloudlets = loadCloudletsFromCSV(INPUT_CSV, offset, totalLimit);
     classifyTasks(cloudlets);
+    System.out.println(deadlineTasks.toString());
+    System.out.println(costTasks.toString());
 
     List<Cloudlet> batch = new ArrayList<>();
     batch.addAll(scheduleBatch(deadlineTasks, true));
     batch.addAll(scheduleBatch(costTasks, false));
-    System.out.println(batch.size());
     broker.submitCloudletList(batch);
 
     simulation.start();
@@ -102,8 +104,8 @@ public class FairQueuingBatchScheduling {
         lastLine = line;
       if (!lastLine.isEmpty()) {
         String[] parts = lastLine.split(",");
-        if (parts.length >= 6)
-          return Double.parseDouble(parts[5]);
+        if (parts.length >= 8)
+          return Double.parseDouble(parts[7]);
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -137,7 +139,7 @@ public class FairQueuingBatchScheduling {
 
   private void classifyTasks(List<Cloudlet> cloudlets) {
     for (Cloudlet cl : cloudlets) {
-      if (cl.getLength() <= DEADLINE_THRESHOLD)
+      if (((CloudletDeadline) cl).getDeadline() <= DEADLINE_THRESHOLD)
         deadlineTasks.add(cl);
       else
         costTasks.add(cl);
@@ -155,18 +157,21 @@ public class FairQueuingBatchScheduling {
       for (int lvm = 0; lvm < LOGICAL_VMS; lvm++) {
         Vm vm0 = vmList.get(lvm * 2);
         Vm vm1 = vmList.get(lvm * 2 + 1);
-        double wait = (vmWait.getOrDefault(vm0, 0.0) + vmWait.getOrDefault(vm1, 0.0)) / 2;
-        double proc = (vm0.getMips() + vm1.getMips()) / 2;
+        double waitTime = vmWait.get(vm0.getId()) + vmWait.get(vm1.getId()) / 2;
+        double proc = vm0.getMips() + vm1.getMips();
+        double resourceCost = vmCost.get(vm0.getId()) + vmCost.get(vm1.getId());
 
         if (isDeadlineQueue) {
-          double turn = wait + (cl.getLength() / proc);
-          if (turn < bestMetric) {
+          double turnaroundTime = waitTime + (cl.getLength() / proc);
+          System.out.println(cl.getLength());
+          System.out.println(turnaroundTime);
+          if (turnaroundTime < bestMetric) {
             bestLogicalVm = lvm;
-            bestMetric = turn;
+            bestMetric = turnaroundTime;
           }
         } else {
-          double cost = (vmCost.getOrDefault(vm0, 0.01) + vmCost.getOrDefault(vm1, 0.01)) * (cl.getLength() / proc) / 2;
-          if (cost < bestMetric) {
+          double cost = resourceCost * cl.getLength() / proc;
+          if (cost < bestMetric && cl.getLength() < proc) {
             bestLogicalVm = lvm;
             bestMetric = cost;
           }
@@ -186,7 +191,6 @@ public class FairQueuingBatchScheduling {
         for (int t = start; t != end; t += step) {
           Vm vm = vmList.get(bestLogicalVm * 2 + t);
           double wait = vmWait.getOrDefault(vm, 0.0);
-          double proc = vm.getMips();
           double startTime = Math.max(wait, virtualTime);
           double eligible = startTime - (1 - ((double) (t + 1) / THREADS_PER_LOGICAL_VM)) * cl.getLength();
 
@@ -204,7 +208,7 @@ public class FairQueuingBatchScheduling {
         Vm selectedVm = vmList.get(bestLogicalVm * 2 + assignedThread);
         cl.setVm(selectedVm);
         double newWait = vmWait.getOrDefault(selectedVm, 0.0) + (cl.getLength() / selectedVm.getMips());
-        vmWait.put(selectedVm, newWait);
+        vmWait.put(selectedVm.getId(), newWait);
         selected.add(cl);
       }
     }
@@ -253,9 +257,10 @@ public class FairQueuingBatchScheduling {
       Vm vm = new VmSimple(HOST_MIPS + 100 * (VMS - i), VM_PES);
       vm.setRam(1024).setBw(5_000).setSize(10_000);
       vm.setCloudletScheduler(new CloudletSchedulerSpaceShared());
+      vm.setId(i);
       list.add(vm);
-      vmCost.put(vm, 0.01 + (VMS - i) * 0.01);
-      vmWait.put(vm, 0.0);
+      vmCost.put(vm.getId(), 0.01 + (VMS - i) * 0.01);
+      vmWait.put(vm.getId(), 0.0);
     }
     broker.submitVmList(list);
     return list;
@@ -280,7 +285,8 @@ public class FairQueuingBatchScheduling {
         if (parts.length >= 2) {
           int taskId = Integer.parseInt(parts[0]);
           long length = Long.parseLong(parts[1]);
-          Cloudlet cloudlet = new CloudletSimple(length, CLOUDLET_PES, utilizationModel);
+          long deadline = Long.parseLong(parts[2]);
+          Cloudlet cloudlet = new CloudletDeadline(length, CLOUDLET_PES, utilizationModel, deadline);
           cloudlet.setId(taskId);
           cloudlet.setSizes(1024);
           cloudlets.add(cloudlet);
@@ -296,9 +302,14 @@ public class FairQueuingBatchScheduling {
   private void writeResultsToCSV(List<Cloudlet> cloudletList) {
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(OUTPUT_CSV, true))) {
       for (Cloudlet cl : cloudletList) {
-        writer.write(String.format("%d,%d,%d,%d,%.2f,%.2f\n",
-            cl.getId(), cl.getLength(), cl.getVm().getId() / THREADS_PER_LOGICAL_VM,
-            cl.getVm().getId() % 2, cl.getStartTime() + offsetTime, cl.getFinishTime() + offsetTime));
+        double resourceCost = vmCost.get(cl.getVm().getId());
+        double proc = cl.getVm().getMips();
+        double taskCost = resourceCost * (cl.getLength() / proc);
+
+        writer.write(String.format("%d,%d,%d,%d,%d,%.5f,%.5f,%.5f,%.5f\n",
+            cl.getId(), cl.getLength(), ((CloudletDeadline) cl).getDeadline(),
+            cl.getVm().getId() / THREADS_PER_LOGICAL_VM, cl.getVm().getId() % 2, cl.getStartTime() + offsetTime,
+            cl.getFinishTime() + offsetTime, cl.getTotalExecutionTime(), taskCost));
       }
     } catch (IOException e) {
       e.printStackTrace();
