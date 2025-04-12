@@ -44,3 +44,14 @@ tasks:
         done
         sed -i '1i {{ join "," .HEADERS }}' results.csv
     silent: false
+
+  setup:
+    cmds:
+      - mvn clean install
+      - virtualenv .venv
+      - source .venv/bin/active
+      - pip install -r requirements.txt
+
+  visualize:
+    cmds:
+      - python visualize.py

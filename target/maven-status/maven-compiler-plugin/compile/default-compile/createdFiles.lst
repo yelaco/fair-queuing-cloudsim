@@ -2,8 +2,8 @@ org/cloudsimplus/examples/dynamic/DynamicCloudletsArrival2.class
 org/cloudsimplus/examples/dynamic/IndefiniteLengthCloudlet.class
 org/cloudbus/cloudsim/examples/network/NetworkExample3.class
 org/cloudsimplus/examples/dynamic/KeepSimulationRunningExample.class
-org/cloudsimplus/examples/migration/InterDatacenterMigration1.class
 org/cloudsimplus/examples/dynamic/DynamicVmsArrival.class
+org/cloudsimplus/examples/migration/InterDatacenterMigration1.class
 org/cloudsimplus/examples/traces/PlanetLabExample1.class
 org/cloudsimplus/examples/VmGroupPlacementExample1.class
 org/cloudsimplus/examples/sla/VmMigrationWhenCpuMetricIsViolatedExample.class
@@ -75,8 +75,8 @@ org/cloudsimplus/examples/schedulers/TwoCloudletsAndOneSpaceSharedVmExample.clas
 org/cloudsimplus/examples/schedulers/LinuxCompletelyFairSchedulerExample.class
 org/cloudsimplus/examples/dynamic/DynamicHostCreation.class
 org/cloudbus/cloudsim/examples/network/applications/NetworkVmsExampleBagOfTasksApp.class
-org/cloudsimplus/examples/MinTimeBetweenEventsExample.class
 org/cloudsimplus/examples/resourceusage/VmRelativeHostResourceUtilizationExample.class
+org/cloudsimplus/examples/MinTimeBetweenEventsExample.class
 org/cloudsimplus/examples/schedulers/VmSchedulerTimeSharedExample.class
 org/advancedcloud/examples/FairQueuingBatchScheduling.class
 org/cloudbus/cloudsim/examples/network/NetworkExample4.class
