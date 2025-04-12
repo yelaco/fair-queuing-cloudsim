@@ -15,10 +15,13 @@ import org.cloudsimplus.schedulers.vm.VmSchedulerSpaceShared;
 import org.cloudsimplus.utilizationmodels.UtilizationModelFull;
 import org.cloudsimplus.vms.Vm;
 import org.cloudsimplus.vms.VmSimple;
+import org.cloudsimplus.builders.tables.CloudletsTableBuilder;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class FairQueuingTaskScheduling {
+public class FairQueuingBatchScheduling {
 
   private static final int HOSTS = 1;
   private static final int HOST_PES = 8;
@@ -32,8 +35,14 @@ public class FairQueuingTaskScheduling {
   private static final int VMS = LOGICAL_VMS * THREADS_PER_LOGICAL_VM;
   private static final int VM_PES = 1;
   private static final int CLOUDLET_PES = 1;
-  private static final int BATCH_SIZE = VMS;
-  private static final int TOTAL_CLOUDLETS = 12; // dynamically generated
+  private static int CLOUDLETS;
+
+  private static final int DEADLINE_THRESHOLD = 800;
+  private static final int LENGTH_THRESHOLD = 400;
+
+  private static final String INPUT_CSV = "tasks.csv";
+  private static final String OUTPUT_CSV = "results.csv";
+  private static final String VIRTUAL_TIME_CSV = "virtual_times.csv";
 
   private final CloudSimPlus simulation;
   private final DatacenterBrokerSimple broker;
@@ -43,48 +52,88 @@ public class FairQueuingTaskScheduling {
   private final Map<Vm, Double> vmCost = new HashMap<>();
   private final Map<Vm, Double> vmWait = new HashMap<>();
   private final Map<Integer, Double> logicalVmVirtualTime = new HashMap<>();
-  private static final int DEADLINE_THRESHOLD = 800;
-  private static final int LENGTH_THRESHOLD = 800;
+
+  private double offsetTime;
 
   public static void main(String[] args) {
-    new FairQueuingTaskScheduling();
+    int offset = args.length > 0 ? Integer.parseInt(args[0]) : 0;
+    int totalLimit = args.length > 1 ? Integer.parseInt(args[1]) : 0;
+    CLOUDLETS = args.length > 2 ? Integer.parseInt(args[2]) : VMS;
+    new FairQueuingBatchScheduling(offset, totalLimit);
   }
 
-  public FairQueuingTaskScheduling() {
+  public FairQueuingBatchScheduling(int offset, int totalLimit) {
+    offsetTime = readLastFinishTimeFromCSV();
+
     simulation = new CloudSimPlus();
     broker = new DatacenterBrokerSimple(simulation);
 
     createDatacenter();
     vmList = createVms();
-    for (int i = 0; i < LOGICAL_VMS; i++) {
-      logicalVmVirtualTime.put(i, 0.0);
+    initializeVirtualTimes();
+
+    List<Cloudlet> cloudlets = loadCloudletsFromCSV(INPUT_CSV, offset, totalLimit);
+    classifyTasks(cloudlets);
+
+    List<Cloudlet> batch = new ArrayList<>();
+    batch.addAll(scheduleBatch(deadlineTasks, 4, true));
+    batch.addAll(scheduleBatch(costTasks, 4, false));
+    broker.submitCloudletList(batch);
+
+    simulation.start();
+
+    List<Cloudlet> finished = broker.getCloudletFinishedList();
+    new CloudletsTableBuilder(finished).build();
+    writeResultsToCSV(finished);
+    updateVirtualTimes(finished);
+  }
+
+  private double readLastFinishTimeFromCSV() {
+    File file = new File(OUTPUT_CSV);
+    if (!file.exists())
+      return 0.0;
+
+    String lastLine = "";
+    try (BufferedReader reader = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {
+      String line;
+      while ((line = reader.readLine()) != null)
+        lastLine = line;
+      if (!lastLine.isEmpty()) {
+        String[] parts = lastLine.split(",");
+        if (parts.length >= 6)
+          return Double.parseDouble(parts[5]);
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return 0.0;
+  }
+
+  private void initializeVirtualTimes() {
+    File file = new File(VIRTUAL_TIME_CSV);
+    if (!file.exists()) {
+      for (int i = 0; i < LOGICAL_VMS; i++) {
+        logicalVmVirtualTime.put(i, 0.0);
+      }
+      return;
     }
 
-    List<Cloudlet> cloudlets = createCloudlets(TOTAL_CLOUDLETS);
-    int index = 0;
-    boolean started = false;
-    while (index < cloudlets.size()) {
-      List<Cloudlet> batch = cloudlets.subList(index, Math.min(index + BATCH_SIZE, cloudlets.size()));
-      classifyTasks(batch);
-      List<Cloudlet> toSubmit = new ArrayList<>();
-      toSubmit.addAll(scheduleBatch(deadlineTasks, 4, true));
-      toSubmit.addAll(scheduleBatch(costTasks, 4, false));
-      broker.submitCloudletList(toSubmit);
-      if (!started) {
-        simulation.startSync();
-        started = true;
-      } else if (simulation.isRunning()) {
-        simulation.runFor(1);
+    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        String[] parts = line.split(",");
+        if (parts.length >= 2) {
+          int vmId = Integer.parseInt(parts[0]);
+          double vt = Double.parseDouble(parts[1]);
+          logicalVmVirtualTime.put(vmId, vt);
+        }
       }
-      updateVirtualTimes(toSubmit);
-      index += BATCH_SIZE;
+    } catch (IOException e) {
+      e.printStackTrace();
     }
-    simulation.runFor(5);
   }
 
   private void classifyTasks(List<Cloudlet> cloudlets) {
-    deadlineTasks.clear();
-    costTasks.clear();
     for (Cloudlet cl : cloudlets) {
       if (cl.getLength() <= DEADLINE_THRESHOLD)
         deadlineTasks.add(cl);
@@ -164,22 +213,25 @@ public class FairQueuingTaskScheduling {
     Map<Integer, Double> accLength = new HashMap<>();
 
     for (Cloudlet cl : cloudlets) {
-      long logicalVmId = cl.getVm().getId() / THREADS_PER_LOGICAL_VM;
-      accLength.put((int) logicalVmId, accLength.getOrDefault((int) logicalVmId, 0.0) + cl.getLength());
+      int logicalVmId = (int) (cl.getVm().getId() / THREADS_PER_LOGICAL_VM);
+      accLength.put(logicalVmId, accLength.getOrDefault(logicalVmId, 0.0) + cl.getLength());
     }
 
-    for (Map.Entry<Integer, Double> entry : accLength.entrySet()) {
-      int logicalVmId = entry.getKey();
-      double update = entry.getValue() / THREADS_PER_LOGICAL_VM;
-      double prev = logicalVmVirtualTime.getOrDefault(logicalVmId, 0.0);
-      double newVt = prev + update;
-      logicalVmVirtualTime.put(logicalVmId, newVt);
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(VIRTUAL_TIME_CSV, false))) {
+      for (int i = 0; i < LOGICAL_VMS; i++) {
+        double prev = logicalVmVirtualTime.getOrDefault(i, 0.0);
+        double update = accLength.getOrDefault(i, 0.0) / THREADS_PER_LOGICAL_VM;
+        double newVt = prev + update;
+        logicalVmVirtualTime.put(i, newVt);
+        writer.write(String.format("%d,%.2f\n", i, newVt));
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
     }
   }
 
   private Datacenter createDatacenter() {
     List<Host> hostList = new ArrayList<>();
-
     for (int i = 0; i < HOSTS; i++) {
       List<Pe> peList = new ArrayList<>();
       for (int j = 0; j < HOST_PES; j++) {
@@ -189,7 +241,6 @@ public class FairQueuingTaskScheduling {
       host.setVmScheduler(new VmSchedulerSpaceShared());
       hostList.add(host);
     }
-
     return new DatacenterSimple(simulation, hostList);
   }
 
@@ -207,19 +258,47 @@ public class FairQueuingTaskScheduling {
     return list;
   }
 
-  private List<Cloudlet> createCloudlets(int count) {
+  private List<Cloudlet> loadCloudletsFromCSV(String filename, int offset, int totalLimit) {
     List<Cloudlet> cloudlets = new ArrayList<>();
     final var utilizationModel = new UtilizationModelFull();
-    Random random = new Random();
-    long baseLength = 500;
+    int maxTasksToLoad = Math.min(CLOUDLETS, totalLimit - offset); // don't load more than remaining allowed
 
-    for (int i = 0; i < count; i++) {
-      long length = baseLength + random.nextInt(1200);
-      Cloudlet cloudlet = new CloudletSimple(length, CLOUDLET_PES, utilizationModel);
-      cloudlet.setId(i);
-      cloudlet.setSizes(1024);
-      cloudlets.add(cloudlet);
+    try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+      String line;
+      int lineIndex = 0, count = 0;
+
+      while ((line = br.readLine()) != null) {
+        if (lineIndex++ < offset)
+          continue;
+        if (count++ >= maxTasksToLoad)
+          break;
+
+        String[] parts = line.split(",");
+        if (parts.length >= 2) {
+          int taskId = Integer.parseInt(parts[0]);
+          long length = Long.parseLong(parts[1]);
+          Cloudlet cloudlet = new CloudletSimple(length, CLOUDLET_PES, utilizationModel);
+          cloudlet.setId(taskId);
+          cloudlet.setSizes(1024);
+          cloudlets.add(cloudlet);
+        }
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
     }
+
     return cloudlets;
+  }
+
+  private void writeResultsToCSV(List<Cloudlet> cloudletList) {
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(OUTPUT_CSV, true))) {
+      for (Cloudlet cl : cloudletList) {
+        writer.write(String.format("%d,%d,%d,%d,%.2f,%.2f\n",
+            cl.getId(), cl.getLength(), cl.getVm().getId() / THREADS_PER_LOGICAL_VM,
+            cl.getVm().getId(), cl.getStartTime() + offsetTime, cl.getFinishTime() + offsetTime));
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 }

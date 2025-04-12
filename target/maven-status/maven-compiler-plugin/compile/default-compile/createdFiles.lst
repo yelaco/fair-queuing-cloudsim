@@ -78,6 +78,7 @@ org/cloudbus/cloudsim/examples/network/applications/NetworkVmsExampleBagOfTasksA
 org/cloudsimplus/examples/MinTimeBetweenEventsExample.class
 org/cloudsimplus/examples/resourceusage/VmRelativeHostResourceUtilizationExample.class
 org/cloudsimplus/examples/schedulers/VmSchedulerTimeSharedExample.class
+org/advancedcloud/examples/FairQueuingBatchScheduling.class
 org/cloudbus/cloudsim/examples/network/NetworkExample4.class
 org/cloudsimplus/examples/brokers/DatacenterBrokersMappingComparison.class
 org/cloudsimplus/examples/listeners/CloudletListenersExample1.class
