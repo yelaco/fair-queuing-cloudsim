@@ -1,4 +1,4 @@
-task_id,length,deadline,vm_id,thread,start_time,finish_time,exec_time,cost
+task_id,length,deadline,vm_id,start_time,finish_time,exec_time,cost
 8,115,310,0,0.10000,0.43500,0.33500,0.00460
 3,208,888,2,0.10000,0.54500,0.44500,0.00416
 7,403,844,1,0.10000,0.92900,0.82900,0.01209

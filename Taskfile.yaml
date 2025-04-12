@@ -5,16 +5,6 @@ vars:
   JAVA_CLASS_ORIGINAL: org.advancedcloud.examples.OriginalTaskScheduling
   JAVA_CLASS_SEQUENTIAL: org.advancedcloud.examples.SequentialTaskScheduling
   TASK_FILE: tasks.csv
-  HEADERS:
-    - task_id
-    - length
-    - deadline
-    - vm_id
-    - thread
-    - start_time
-    - finish_time
-    - exec_time
-    - cost
 
 tasks:
   compile:
@@ -25,15 +15,15 @@ tasks:
   all:
     ignore_error: true
     cmds:
-      # - rm ./results/proposed/*
+      - rm ./results/proposed/*
       - rm ./results/original/*
       - rm ./results/sequential/*
-      # - task: run-proposed-200-10
-      # - task: run-proposed-400-10
-      # - task: run-proposed-600-10
-      # - task: run-proposed-800-10
-      # - task: run-proposed-1000-10
-      # - mv results-proposed-*.csv ./results/proposed/
+      - task: run-proposed-200-10
+      - task: run-proposed-400-10
+      - task: run-proposed-600-10
+      - task: run-proposed-800-10
+      - task: run-proposed-1000-10
+      - mv results-proposed-*.csv ./results/proposed/
       - task: run-original-200-10
       - task: run-original-400-10
       - task: run-original-600-10
@@ -55,6 +45,16 @@ tasks:
       LIMIT: "{{index .MATCH 0}}"
       BATCH_SIZE: "{{index .MATCH 1}}"
       RESULT_FILE: "results-proposed-{{.LIMIT}}-{{.BATCH_SIZE}}.csv"
+      HEADERS:
+        - task_id
+        - length
+        - deadline
+        - vm_id
+        - thread
+        - start_time
+        - finish_time
+        - exec_time
+        - cost
     cmds:
       - rm {{.RESULT_FILE}} virtual_times.csv
       - |
@@ -73,6 +73,15 @@ tasks:
       LIMIT: "{{index .MATCH 0}}"
       BATCH_SIZE: "{{index .MATCH 1}}"
       RESULT_FILE: "results-original-{{.LIMIT}}-{{.BATCH_SIZE}}.csv"
+      HEADERS:
+        - task_id
+        - length
+        - deadline
+        - vm_id
+        - start_time
+        - finish_time
+        - exec_time
+        - cost
     cmds:
       - rm {{.RESULT_FILE}}
       - |
@@ -91,6 +100,15 @@ tasks:
       LIMIT: "{{index .MATCH 0}}"
       BATCH_SIZE: "{{index .MATCH 1}}"
       RESULT_FILE: "results-sequential-{{.LIMIT}}-{{.BATCH_SIZE}}.csv"
+      HEADERS:
+        - task_id
+        - length
+        - deadline
+        - vm_id
+        - start_time
+        - finish_time
+        - exec_time
+        - cost
     cmds:
       - rm {{.RESULT_FILE}}
       - |
