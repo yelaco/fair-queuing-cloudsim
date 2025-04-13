@@ -36,6 +36,7 @@ tasks:
       - task: run-sequential-800-10
       - task: run-sequential-1000-10
       - mv results-sequential-*.csv ./results/sequential/
+      - python compare.py
 
   run-proposed-*-*:
     desc: Run the simulation in batches

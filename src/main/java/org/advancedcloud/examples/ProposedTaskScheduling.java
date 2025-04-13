@@ -38,8 +38,7 @@ public class ProposedTaskScheduling {
 
   private static int CLOUDLETS;
 
-  private static final int DEADLINE_THRESHOLD = 1000;
-  private static final int LENGTH_THRESHOLD = 400;
+  private static final int LENGTH_THRESHOLD = 500;
 
   private static final String INPUT_CSV = "tasks.csv";
   private static String OUTPUT_CSV;
@@ -139,7 +138,7 @@ public class ProposedTaskScheduling {
 
   private void classifyTasks(List<Cloudlet> cloudlets) {
     for (Cloudlet cl : cloudlets) {
-      if (((CloudletDeadline) cl).getDeadline() <= DEADLINE_THRESHOLD)
+      if (((CloudletDeadline) cl).getDeadline() <= 1.5 * cl.getLength())
         deadlineTasks.add(cl);
       else
         costTasks.add(cl);

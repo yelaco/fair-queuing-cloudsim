@@ -68,7 +68,7 @@ public class OriginalTaskScheduling {
     List<CloudletDeadline> deadlineQueue = new ArrayList<>();
     List<CloudletDeadline> costQueue = new ArrayList<>();
     for (CloudletDeadline cl : cloudlets) {
-      if (cl.getLength() <= 800)
+      if (cl.getDeadline() <= 1.5 * cl.getLength())
         deadlineQueue.add(cl);
       else
         costQueue.add(cl);
@@ -208,7 +208,7 @@ public class OriginalTaskScheduling {
   private List<Vm> createVms() {
     List<Vm> list = new ArrayList<>();
     for (int i = 0; i < VMS; i++) {
-      Vm vm = new VmSimple(HOST_MIPS, VM_PES);
+      Vm vm = new VmSimple(2 * HOST_MIPS, VM_PES);
       vm.setRam(1024).setBw(5000).setSize(10000);
       vm.setCloudletScheduler(new CloudletSchedulerSpaceShared());
       vm.setId(i);
