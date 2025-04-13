@@ -128,6 +128,7 @@ tasks:
       - pip install -r requirements.txt
 
   clean:
+    ignore_error: true
     cmds:
       - rm results-*.csv
 

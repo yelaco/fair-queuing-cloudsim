@@ -169,7 +169,7 @@ public class SequentialTaskScheduling {
     for (int i = 0; i < HOSTS; i++) {
       List<Pe> peList = new ArrayList<>();
       for (int j = 0; j < HOST_PES; j++) {
-        peList.add(new PeSimple(HOST_MIPS));
+        peList.add(new PeSimple(2 * HOST_MIPS));
       }
       Host host = new HostSimple(HOST_RAM, HOST_BW, HOST_STORAGE, peList);
       host.setVmScheduler(new VmSchedulerSpaceShared());
@@ -181,7 +181,7 @@ public class SequentialTaskScheduling {
   private List<Vm> createVms() {
     List<Vm> list = new ArrayList<>();
     for (int i = 0; i < VMS; i++) {
-      Vm vm = new VmSimple(2 * HOST_MIPS, VM_PES);
+      Vm vm = new VmSimple(HOST_MIPS + 100 * (VMS - i), VM_PES);
       vm.setRam(1024).setBw(5000).setSize(10000);
       vm.setCloudletScheduler(new CloudletSchedulerSpaceShared());
       vm.setId(i);

@@ -253,12 +253,12 @@ public class ProposedTaskScheduling {
   private List<Vm> createVms() {
     List<Vm> list = new ArrayList<>();
     for (int i = 0; i < VMS; i++) {
-      Vm vm = new VmSimple(HOST_MIPS + 100 * (VMS - i), VM_PES);
+      Vm vm = new VmSimple(HOST_MIPS + 100 * (LOGICAL_VMS - (i / THREADS_PER_LOGICAL_VM)), VM_PES);
       vm.setRam(1024).setBw(5_000).setSize(10_000);
       vm.setCloudletScheduler(new CloudletSchedulerSpaceShared());
       vm.setId(i);
       list.add(vm);
-      vmCost.put(vm.getId(), 0.01 + (VMS - i) * 0.01);
+      vmCost.put(vm.getId(), 0.01 + (LOGICAL_VMS - (i / THREADS_PER_LOGICAL_VM)) * 0.01);
       vmWait.put(vm.getId(), 0.0);
     }
     broker.submitVmList(list);
