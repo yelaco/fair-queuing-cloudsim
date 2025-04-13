@@ -52,16 +52,6 @@ heatmap_matrix = heatmap_df.pivot(
     index="vm_id", columns="thread", values="duration"
 ).fillna(0)
 
-# Deadline slack distribution
-slack_hist = px.histogram(
-    df,
-    x="slack",
-    color="urgency",
-    nbins=30,
-    title="Slack Time Distribution (Deadline - Task Length)",
-    labels={"slack": "Slack Time", "count": "Task Count"},
-)
-
 # Initialize Dash app
 app = Dash(__name__)
 app.title = "2DFQ Scheduling Insights"
@@ -123,7 +113,6 @@ app.layout = html.Div(
                 aspect="auto",
             )
         ),
-        dcc.Graph(figure=slack_hist),
     ]
 )
 
