@@ -15,27 +15,27 @@ tasks:
   all:
     ignore_error: true
     cmds:
-      - rm ./results/proposed/*
-      - rm ./results/original/*
-      - rm ./results/sequential/*
+      - rm ./results/algorithms/proposed/*
+      - rm ./results/algorithms/original/*
+      - rm ./results/algorithms/sequential/*
       - task: run-proposed-200-10
       - task: run-proposed-400-10
       - task: run-proposed-600-10
       - task: run-proposed-800-10
       - task: run-proposed-1000-10
-      - mv results-proposed-*.csv ./results/proposed/
+      - mv results-proposed-*.csv ./results/algorithms/proposed/
       - task: run-original-200-10
       - task: run-original-400-10
       - task: run-original-600-10
       - task: run-original-800-10
       - task: run-original-1000-10
-      - mv results-original-*.csv ./results/original/
+      - mv results-original-*.csv ./results/algorithms/original/
       - task: run-sequential-200-10
       - task: run-sequential-400-10
       - task: run-sequential-600-10
       - task: run-sequential-800-10
       - task: run-sequential-1000-10
-      - mv results-sequential-*.csv ./results/sequential/
+      - mv results-sequential-*.csv ./results/algorithms/sequential/
       - python compare.py
 
   run-proposed-*-*:
@@ -134,4 +134,4 @@ tasks:
 
   visualize:
     cmds:
-      - python visualize.py
+      - python visualize.py ./results/proposed/results-proposed-1000-10.csv

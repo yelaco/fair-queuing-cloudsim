@@ -5,7 +5,7 @@ from pathlib import Path
 # ==== CONFIGURATION ====
 sizes = [200, 400, 600, 800, 1000]
 algorithms = ["sequential", "original", "proposed"]
-base_dir = "./results"  # Change this if your CSVs are stored elsewhere
+base_dir = "./results/algorithms/"  # Change this if your CSVs are stored elsewhere
 
 
 # ==== LOAD DATA ====
@@ -74,5 +74,5 @@ axs[2].set_xlabel("Number of Tasks")
 axs[2].legend(title="Algorithm")
 
 plt.tight_layout()
-plt.savefig("results/comparison_result.png", dpi=300)
+plt.savefig("results/algorithms/comparison.png", dpi=300)
 plt.show()
