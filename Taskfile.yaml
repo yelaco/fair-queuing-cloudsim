@@ -9,6 +9,7 @@ vars:
 tasks:
   compile:
     desc: Compile the Maven project
+    internal: true
     cmds:
       - mvn clean compile
 
